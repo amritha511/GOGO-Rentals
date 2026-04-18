@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Dashboard - GoGo RENTALS{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --dark-bg: #121212;
+        --card-bg: #1e1e1e;
+        --card-hover: #2a2a2a;
+        --primary: #7c3aed;
+        --primary-hover: #6d28d9;
+        --text-primary: #ffffff; /* changed to pure white */
+        --text-secondary: #c0c0c0;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --info: #3b82f6;
+    }
+
+    body {
+        background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)),
+                    url("{{ url_for('static', filename='images/car-bg.jpg') }}") no-repeat center center fixed;
+        background-size: cover;
+        color: var(--text-primary);
+        min-height: 100vh;
+    }
+
+    .dashboard-card {
+        background-color: var(--card-bg);
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        transition: all 0.3s ease;
+        height: 100%;
+        color: var(--text-primary); /* all text inside cards white */
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+        background-color: var(--card-hover);
+    }
+
+    .card-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .card-text {
+        color: var(--text-secondary);
+    }
+
+    .card-header {
+        background-color: transparent;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    /* =========================
+       Recent Bookings Table
+       ========================= */
+    .table {
+        color: var(--text-primary) !important; /* all table text white */
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .table th, .table td {
+        color: var(--text-primary) !important;
+    }
+
+    .table th {
+        background-color: rgba(124, 58, 237, 0.1);
+        border-color: rgba(124, 58, 237, 0.2);
+        font-weight: 600;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(124, 58, 237, 0.1);
+    }
+
+    .badge {
+        font-weight: 500;
+        padding: 0.5em 0.8em;
+        color: #fff !important; /* badges text white */
+    }
+
+    .bg-success { background-color: var(--success) !important; }
+    .bg-warning { background-color: var(--warning) !important; color:#000 !important; }
+    .bg-danger { background-color: var(--danger) !important; }
+
+    .btn-outline-primary {
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+
+    .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+
+    /* Chatbot Styling */
+    .chat-container {
+        background-color: rgba(30, 30, 30, 0.8) !important;
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        height: 300px;
+        overflow-y: auto;
+        padding: 15px;
+        color: var(--text-primary);
+    }
+
+    .chat-message {
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
+        border-radius: 12px;
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+
+    .chat-bot {
+        background-color: rgba(124, 58, 237, 0.2);
+        border-left: 4px solid var(--primary);
+    }
+
+    .chat-user {
+        background-color: rgba(59, 130, 246, 0.2);
+        border-right: 4px solid var(--info);
+        margin-left: auto;
+    }
+
+    h2, h5 {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-house-door me-2"></i>My Dashboard</h2>
+        <div>
+            <button class="btn btn-outline-primary me-2" id="chatbot-btn" data-bs-toggle="modal" data-bs-target="#chatbot-modal">
+                <i class="bi bi-chat-dots"></i> Virtual Assistant
+            </button>
+            <a href="{{ url_for('customer_vehicles') }}" class="btn btn-primary">
+                <i class="bi bi-car-front"></i> Browse Vehicles
+            </a>
+        </div>
+    </div>
+
+    <!-- 🔔 Payment Alert -->
+    {% set unpaid_bookings = recent_bookings|selectattr("payment_status", "equalto", "unpaid")|list %}
+    {% if unpaid_bookings %}
+    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            You have <strong>{{ unpaid_bookings|length }}</strong> unpaid booking(s). 
+            Please complete your payment to confirm your reservation.
+        </div>
+        <a href="{{ url_for('payment', booking_id=unpaid_bookings[0].id) }}" class="btn btn-sm btn-success">
+            Pay Now
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card dashboard-card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        {% set active_bookings = recent_bookings|selectattr("status","in",["pending","approved"])|list %}
+                        {{ active_bookings|length }}
+                    </h5>
+                    <p class="card-text"><i class="bi bi-calendar-check me-2"></i>Active Bookings</p>
+                </div>
+                <div class="card-footer bg-light-blue">
+                    <small><a href="{{ url_for('my_bookings') }}">View All</a></small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card dashboard-card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        {% set completed_bookings = recent_bookings|selectattr("status","equalto","completed")|list %}
+                        {{ completed_bookings|length }}
+                    </h5>
+                    <p class="card-text"><i class="bi bi-check-circle me-2"></i>Completed Rentals</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card dashboard-card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ recent_bookings|length }}</h5>
+                    <p class="card-text"><i class="bi bi-car-front me-2"></i>Total Bookings</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Bookings Table -->
+    <div class="card mb-4 dashboard-card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Bookings</h5>
+        </div>
+        <div class="card-body">
+            {% if recent_bookings %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in recent_bookings %}
+                        <tr>
+                            <td>{{ booking.vehicle.brand }} {{ booking.vehicle.model }}</td>
+                            <td>{{ booking.from_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ booking.to_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if booking.status == 'approved' %}bg-success
+                                    {% elif booking.status == 'pending' %}bg-warning
+                                    {% elif booking.status in ['rejected','cancelled'] %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ booking.status|title }}
+                                </span>
+                            </td>
+                            <td>${{ "%.2f"|format(booking.total_price) }}</td>
+                            <td>
+                                {% if booking.payment_status != 'paid' %}
+                                <a href="{{ url_for('payment', booking_id=booking.id) }}"
+                                   class="btn btn-sm btn-success">Pay Now</a>
+                                {% endif %}
+
+                                {% if booking.status in ['pending','approved'] %}
+                                <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}"
+                                   class="btn btn-sm btn-outline-danger"
+                                   onclick="return confirm('Cancel this booking?');">Cancel</a>
+                                {% endif %}
+
+                                <a href="{{ url_for('my_bookings', booking_id=booking.id) }}"
+                                   class="btn btn-sm btn-outline-primary">Details</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center">You don't have any bookings yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recommendations Section -->
+    <div class="card dashboard-card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-stars me-2"></i>Vehicle Recommendations</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Max Budget</label>
+                    <input type="number" class="form-control" id="budget" placeholder="e.g., 50" min="0">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Fuel Type</label>
+                    <select class="form-select" id="fuel_type">
+                        <option value="">Any</option>
+                        <option>Petrol</option>
+                        <option>Diesel</option>
+                        <option>Electric</option>
+                        <option>Hybrid</option>
+                        <option>CNG</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Minimum Seats</label>
+                    <input type="number" class="form-control" id="seats" placeholder="e.g., 5" min="2" max="8">
+                </div>
+            </div>
+            <div class="text-center">
+                <button class="btn btn-primary" id="recommendation-btn">Get Recommendations</button>
+            </div>
+            <div id="recommendation-results" class="row mt-4"></div>
+            <div id="recommendation-loading" class="text-center mt-3" style="display:none;">
+                <div class="spinner-border text-primary"></div>
+                <p>Finding the best vehicles...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chatbot Modal -->
+<div class="modal fade" id="chatbot-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content dashboard-card">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-robot me-2"></i>Virtual Assistant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="chat-display" class="chat-container mb-3 rounded">
+                    <div class="chat-message chat-bot">
+                        Hello! I'm your GoGo RENTALS assistant. 😊 How can I help you today?
+                    </div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="chat-input" class="form-control" placeholder="Type your question...">
+                    <button id="chat-send" class="btn btn-primary"><i class="bi bi-send"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatDisplay = document.getElementById('chat-display');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+
+    function addMessage(msg, isUser=false) {
+        const div = document.createElement('div');
+        div.className = 'chat-message ' + (isUser ? 'chat-user' : 'chat-bot');
+        div.textContent = msg;
+        chatDisplay.appendChild(div);
+        chatDisplay.scrollTop = chatDisplay.scrollHeight;
+    }
+
+    function sendMessage() {
+        const msg = chatInput.value.trim();
+        if (!msg) return;
+        addMessage(msg, true);
+        chatInput.value = '';
+        setTimeout(() => {
+            let response = "I'm just a demo assistant. I can guide you with bookings, vehicles, and payments.";
+            if (msg.toLowerCase().includes('booking')) response = "Check the 'My Bookings' section to manage reservations.";
+            else if (msg.toLowerCase().includes('vehicle')) response = "Browse our fleet in the 'Browse Vehicles' section.";
+            else if (msg.toLowerCase().includes('payment')) response = "Payments are secure. We accept major cards.";
+            addMessage(response);
+        }, 1000);
+    }
+
+    chatSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', e => { if (e.key==='Enter') sendMessage(); });
+
+    document.getElementById('recommendation-btn').addEventListener('click', function() {
+        const budget = document.getElementById('budget').value;
+        const fuel = document.getElementById('fuel_type').value;
+        const seats = document.getElementById('seats').value;
+        const results = document.getElementById('recommendation-results');
+        const loading = document.getElementById('recommendation-loading');
+        results.innerHTML=''; loading.style.display='block';
+
+        setTimeout(() => {
+            loading.style.display='none';
+            results.innerHTML = `
+                <div class="col-md-4">
+                    <div class="card dashboard-card h-100">
+                        <img src="/static/images/corolla.jpg" class="card-img-top" style="height:200px;object-fit:cover;">
+                        <div class="card-body">
+                            <h5>Toyota Corolla</h5>
+                            <p>$45/day - Petrol - 5 Seats</p>
+                        </div>
+                        <div class="card-footer">
+                            <a href="/book/1" class="btn btn-success btn-sm">Book Now</a>
+                        </div>
+                    </div>
+                </div>`;
+        }, 1500);
+    });
+});
+</script>
+{% endblock %}
+

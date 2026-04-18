@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Vehicles - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<div class="dark-theme-wrapper">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-light">Manage Vehicles</h2>
+        <a href="{{ url_for('add_vehicle') }}" class="btn btn-primary glow-on-hover">
+            <i class="bi bi-plus-circle"></i> Add Vehicle
+        </a>
+    </div>
+
+    <!-- Search and Filter Form -->
+    <div class="card dark-card mb-4">
+        <div class="card-header dark-card-header">
+            <h5 class="mb-0 text-light">Search & Filter</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin_vehicles') }}" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control dark-input" name="search" placeholder="Search by brand or model..." value="{{ search }}">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select dark-select" name="brand">
+                        <option value="">All Brands</option>
+                        {% for brand in brands %}
+                        <option value="{{ brand }}" {% if brand_filter == brand %}selected{% endif %}>{{ brand }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select dark-select" name="fuel">
+                        <option value="">All Fuel Types</option>
+                        <option value="Petrol" {% if fuel_filter == 'Petrol' %}selected{% endif %}>Petrol</option>
+                        <option value="Diesel" {% if fuel_filter == 'Diesel' %}selected{% endif %}>Diesel</option>
+                        <option value="Electric" {% if fuel_filter == 'Electric' %}selected{% endif %}>Electric</option>
+                        <option value="Hybrid" {% if fuel_filter == 'Hybrid' %}selected{% endif %}>Hybrid</option>
+                        <option value="CNG" {% if fuel_filter == 'CNG' %}selected{% endif %}>CNG</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 glow-on-hover">
+                        <i class="bi bi-funnel"></i> Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Vehicles Table -->
+    <div class="card dark-card">
+        <div class="card-body">
+            {% if vehicles %}
+            <div class="table-responsive">
+                <table class="table table-dark table-hover admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Image</th>
+                            <th>Brand</th>
+                            <th>Model</th>
+                            <th>Year</th>
+                            <th>Color</th>
+                            <th>Seats</th>
+                            <th>Fuel Type</th>
+                            <th>Price/Day</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vehicle in vehicles %}
+                        <tr class="vehicle-row">
+                            <td class="vehicle-id">{{ vehicle.id }}</td>
+                            <td>
+                                {% if vehicle.image_path %}
+                                <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image_path) }}" 
+                                     alt="{{ vehicle.brand }} {{ vehicle.model }}" 
+                                     class="vehicle-thumbnail rounded"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                <span class="no-image-fallback" style="display: none;">
+                                    <i class="bi bi-image text-muted"></i>
+                                </span>
+                                {% else %}
+                                <span class="text-muted no-image">
+                                    <i class="bi bi-image"></i>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ vehicle.brand }}</td>
+                            <td>{{ vehicle.model }}</td>
+                            <td>{{ vehicle.year }}</td>
+                            <td>
+                                {% if vehicle.color %}
+                                <span class="color-badge">{{ vehicle.color }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="seats-badge">
+                                    <i class="bi bi-people"></i> {{ vehicle.seating_capacity }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fuel-badge" data-fuel-type="{{ vehicle.fuel_type|lower }}">
+                                    {{ vehicle.fuel_type }}
+                                </span>
+                            </td>
+                            <td class="price-cell">${{ "%.2f"|format(vehicle.price_per_day) }}</td>
+                            <td>
+                                <span class="status-badge {% if vehicle.available %}available{% else %}unavailable{% endif %}">
+                                    {% if vehicle.available %}Available{% else %}Not Available{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm action-buttons">
+                                    <a href="{{ url_for('edit_vehicle', vehicle_id=vehicle.id) }}" 
+                                       class="btn btn-outline-primary edit-btn"
+                                       data-bs-toggle="tooltip" title="Edit Vehicle">
+                                       <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('delete_vehicle', vehicle_id=vehicle.id) }}" 
+                                       class="btn btn-outline-danger delete-btn"
+                                       data-bs-toggle="tooltip" title="Delete Vehicle"
+                                       onclick="return confirm('Are you sure you want to delete this vehicle? This action cannot be undone.')">
+                                       <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 empty-state">
+                <div class="empty-icon mb-3">
+                    <i class="bi bi-car-front"></i>
+                </div>
+                <h5 class="text-light">No vehicles found</h5>
+                <p class="text-muted">Get started by adding your first vehicle to the fleet</p>
+                <a href="{{ url_for('add_vehicle') }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle"></i> Add Your First Vehicle
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dark-theme-wrapper {
+    background-color: #121212;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.dark-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dark-card-header {
+    background-color: #252525;
+    border-bottom: 1px solid #333;
+}
+
+.dark-input, .dark-select {
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    color: #e9ecef;
+}
+
+.dark-input:focus, .dark-select:focus {
+    background-color: #333;
+    border-color: #0d6efd;
+    color: #e9ecef;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.admin-table {
+    background-color: transparent;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.admin-table thead th {
+    background-color: #252525;
+    border-bottom: 2px solid #333;
+    padding: 15px 12px;
+    font-weight: 600;
+    color: #b0b0b0;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.admin-table tbody tr {
+    background-color: #252525;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.admin-table tbody tr:hover {
+    background-color: #2d2d2d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.admin-table tbody td {
+    padding: 15px 12px;
+    vertical-align: middle;
+    border-top: 1px solid #333;
+    color: #e9ecef;
+}
+
+.vehicle-thumbnail {
+    width: 60px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+    transition: transform 0.3s ease;
+}
+
+.vehicle-thumbnail:hover {
+    transform: scale(1.1);
+}
+
+.no-image, .no-image-fallback {
+    font-size: 1.2rem;
+}
+
+.color-badge {
+    background-color: #333;
+    color: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.seats-badge {
+    background-color: #2d2d2d;
+    color: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.fuel-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.fuel-badge[data-fuel-type="electric"] {
+    background-color: rgba(76, 217, 100, 0.2);
+    color: #4cd964;
+    border: 1px solid #4cd964;
+}
+
+.fuel-badge[data-fuel-type="hybrid"] {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+    border: 1px solid #ffc107;
+}
+
+.fuel-badge[data-fuel-type="petrol"] {
+    background-color: rgba(13, 110, 253, 0.2);
+    color: #0d6efd;
+    border: 1px solid #0d6efd;
+}
+
+.fuel-badge[data-fuel-type="diesel"] {
+    background-color: rgba(108, 117, 125, 0.2);
+    color: #6c757d;
+    border: 1px solid #6c757d;
+}
+
+.fuel-badge[data-fuel-type="cng"] {
+    background-color: rgba(111, 66, 193, 0.2);
+    color: #6f42c1;
+    border: 1px solid #6f42c1;
+}
+
+.price-cell {
+    font-weight: 600;
+    color: #4cd964 !important;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-badge.available {
+    background-color: rgba(25, 135, 84, 0.2);
+    color: #198754;
+    border: 1px solid #198754;
+}
+
+.status-badge.unavailable {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.action-buttons {
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.edit-btn, .delete-btn {
+    border: 1px solid;
+    padding: 6px 10px;
+    transition: all 0.3s ease;
+}
+
+.edit-btn {
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.edit-btn:hover {
+    background-color: #0d6efd;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.delete-btn {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.delete-btn:hover {
+    background-color: #dc3545;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.glow-on-hover {
+    transition: all 0.3s ease;
+}
+
+.glow-on-hover:hover {
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
+}
+
+.empty-state {
+    padding: 40px 20px;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    opacity: 0.7;
+}
+
+/* Animation for table rows */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.vehicle-row {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+/* Stagger animation for multiple rows */
+.vehicle-row:nth-child(1) { animation-delay: 0.1s; }
+.vehicle-row:nth-child(2) { animation-delay: 0.2s; }
+.vehicle-row:nth-child(3) { animation-delay: 0.3s; }
+.vehicle-row:nth-child(4) { animation-delay: 0.4s; }
+.vehicle-row:nth-child(5) { animation-delay: 0.5s; }
+
+/* Custom scrollbar for table */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dark-theme-wrapper {
+        padding: 10px;
+    }
+    
+    .admin-table {
+        font-size: 0.85rem;
+    }
+    
+    .admin-table thead th {
+        padding: 10px 8px;
+    }
+    
+    .admin-table tbody td {
+        padding: 10px 8px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .edit-btn, .delete-btn {
+        margin-bottom: 2px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+});
+
+// Handle image loading errors
+document.querySelectorAll('.vehicle-thumbnail').forEach(img => {
+    img.onerror = function() {
+        this.style.display = 'none';
+        const fallback = this.nextElementSibling;
+        if (fallback && fallback.classList.contains('no-image-fallback')) {
+            fallback.style.display = 'inline';
+        }
+    }
+});
+</script>
+{% endblock %}

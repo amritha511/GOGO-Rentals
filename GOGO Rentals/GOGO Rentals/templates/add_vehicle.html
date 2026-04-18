@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}Add Vehicle - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<div class="dark-theme-wrapper">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card dark-card">
+                <div class="card-header dark-card-header">
+                    <h4 class="mb-0 text-light">Add New Vehicle</h4>
+                    <p class="text-muted mb-0">Fill in the details to add a new vehicle to the fleet</p>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_vehicle') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="brand" class="form-label text-light">Brand *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-building"></i>
+                                    </span>
+                                    <input type="text" class="form-control dark-input" id="brand" name="brand" required placeholder="Enter vehicle brand">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please enter the vehicle brand.
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="model" class="form-label text-light">Model *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-gear"></i>
+                                    </span>
+                                    <input type="text" class="form-control dark-input" id="model" name="model" required placeholder="Enter vehicle model">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please enter the vehicle model.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="year" class="form-label text-light">Year *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-calendar"></i>
+                                    </span>
+                                    <input type="number" class="form-control dark-input" id="year" name="year" min="1900" max="2030" required placeholder="YYYY">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please enter a valid year (1900-2030).
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="color" class="form-label text-light">Color</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-palette"></i>
+                                    </span>
+                                    <input type="text" class="form-control dark-input" id="color" name="color" placeholder="Enter color">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="seating_capacity" class="form-label text-light">Seating Capacity *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-people"></i>
+                                    </span>
+                                    <input type="number" class="form-control dark-input" id="seating_capacity" name="seating_capacity" min="2" max="8" required placeholder="2-8">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please enter seating capacity (2-8).
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fuel_type" class="form-label text-light">Fuel Type *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-fuel-pump"></i>
+                                    </span>
+                                    <select class="form-select dark-select" id="fuel_type" name="fuel_type" required>
+                                        <option value="">Select Fuel Type</option>
+                                        <option value="Petrol">Petrol</option>
+                                        <option value="Diesel">Diesel</option>
+                                        <option value="Electric">Electric</option>
+                                        <option value="Hybrid">Hybrid</option>
+                                        <option value="CNG">CNG</option>
+                                    </select>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please select a fuel type.
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="price_per_day" class="form-label text-light">Price per Day ($) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-tag"></i>
+                                    </span>
+                                    <input type="number" class="form-control dark-input" id="price_per_day" name="price_per_day" min="0" step="0.01" required placeholder="0.00">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please enter a valid price.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input dark-switch" type="checkbox" id="available" name="available" checked>
+                                <label class="form-check-label text-light" for="available">
+                                    Available for booking
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="image" class="form-label text-light">Vehicle Image</label>
+                            <div class="file-upload-container">
+                                <input type="file" class="form-control dark-file-input" id="image" name="image" accept="image/*" onchange="previewImage(this)">
+                                <div class="form-text text-muted">Allowed formats: JPG, PNG, GIF, WEBP | Max size: 5MB</div>
+                                <div class="mt-3 image-preview-container">
+                                    <img id="image-preview" src="#" alt="Image preview" class="img-preview">
+                                    <div class="no-preview">
+                                        <i class="bi bi-image"></i>
+                                        <span>Image preview will appear here</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="description" class="form-label text-light">Description</label>
+                            <div class="input-group">
+                                <span class="input-group-text dark-input-icon align-items-start">
+                                    <i class="bi bi-textarea-t"></i>
+                                </span>
+                                <textarea class="form-control dark-input" id="description" name="description" rows="3" placeholder="Enter vehicle description (features, condition, etc.)"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg glow-on-hover">
+                                <i class="bi bi-plus-circle"></i> Add Vehicle
+                            </button>
+                            <a href="{{ url_for('admin_vehicles') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dark-theme-wrapper {
+    background-color: #121212;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.dark-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.dark-card-header {
+    background: linear-gradient(135deg, #252525 0%, #1e1e1e 100%);
+    border-bottom: 1px solid #333;
+    padding: 1.5rem;
+}
+
+.dark-input, .dark-select, .dark-file-input {
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    color: #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.dark-input:focus, .dark-select:focus, .dark-file-input:focus {
+    background-color: #333;
+    border-color: #0d6efd;
+    color: #e9ecef;
+    box-shadow: 0 0 0 0.3rem rgba(13, 110, 253, 0.15);
+}
+
+.dark-input-icon {
+    background-color: #252525;
+    border: 1px solid #444;
+    border-right: none;
+    color: #6c757d;
+}
+
+.dark-switch {
+    width: 3rem;
+    height: 1.5rem;
+    background-color: #444;
+    border: 1px solid #555;
+}
+
+.dark-switch:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.file-upload-container {
+    border: 2px dashed #444;
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.file-upload-container:hover {
+    border-color: #0d6efd;
+    background-color: #252525;
+}
+
+.image-preview-container {
+    position: relative;
+    text-align: center;
+}
+
+.img-preview {
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    display: none;
+}
+
+.no-preview {
+    color: #6c757d;
+    padding: 2rem;
+    border: 2px dashed #444;
+    border-radius: 8px;
+    background-color: #252525;
+}
+
+.no-preview i {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.glow-on-hover {
+    transition: all 0.3s ease;
+}
+
+.glow-on-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 20px rgba(13, 110, 253, 0.4);
+}
+
+/* Custom form validation styling */
+.was-validated .dark-input:invalid,
+.was-validated .dark-select:invalid {
+    border-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.was-validated .dark-input:valid,
+.was-validated .dark-select:valid {
+    border-color: #198754;
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+/* Animation for form elements */
+.form-group {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Stagger animations */
+.row > div:nth-child(1) { animation-delay: 0.1s; }
+.row > div:nth-child(2) { animation-delay: 0.2s; }
+.row > div:nth-child(3) { animation-delay: 0.3s; }
+.row > div:nth-child(4) { animation-delay: 0.4s; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dark-theme-wrapper {
+        padding: 10px;
+    }
+    
+    .dark-card {
+        margin: 0;
+    }
+    
+    .input-group-text {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .file-upload-container {
+        padding: 1rem;
+    }
+}
+
+/* Custom scrollbar for select */
+.dark-select::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dark-select::-webkit-scrollbar-track {
+    background: #2d2d2d;
+    border-radius: 4px;
+}
+
+.dark-select::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.dark-select::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewImage(input) {
+    const previewContainer = document.querySelector('.image-preview-container');
+    const imgPreview = document.getElementById('image-preview');
+    const noPreview = document.querySelector('.no-preview');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        
+        if (file.size > maxSize) {
+            alert('File size must be less than 5MB');
+            input.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imgPreview.src = e.target.result;
+            imgPreview.style.display = 'block';
+            noPreview.style.display = 'none';
+            
+            // Add animation to preview
+            imgPreview.style.animation = 'fadeIn 0.5s ease';
+        }
+        reader.readAsDataURL(file);
+    } else {
+        imgPreview.style.display = 'none';
+        noPreview.style.display = 'block';
+    }
+}
+
+// Set current year as max for year input
+document.addEventListener('DOMContentLoaded', function() {
+    const currentYear = new Date().getFullYear();
+    document.getElementById('year').max = currentYear + 1;
+    document.getElementById('year').min = currentYear - 50;
+    
+    // Add input validation
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+    
+    // Add real-time validation
+    const inputs = document.querySelectorAll('.dark-input, .dark-select');
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            this.classList.add('validated');
+        });
+    });
+});
+</script>
+{% endblock %}

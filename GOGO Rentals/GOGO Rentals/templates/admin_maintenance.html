@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}Vehicle Maintenance - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<div class="dark-theme-wrapper">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-light">Vehicle Maintenance</h2>
+        <div class="admin-stats">
+            <span class="badge bg-info">{{ vehicles|length }} vehicles</span>
+            <span class="badge bg-warning ms-2">{{ maintenance_logs|length }} maintenance records</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card dark-card">
+                <div class="card-header dark-card-header">
+                    <h5 class="mb-0 text-light">Select Vehicle</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('admin_maintenance') }}">
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text dark-input-icon">
+                                    <i class="bi bi-car-front"></i>
+                                </span>
+                                <select class="form-select dark-select" name="vehicle_id" onchange="this.form.submit()">
+                                    <option value="">Select a vehicle</option>
+                                    {% for v in vehicles %}
+                                    <option value="{{ v.id }}" {% if selected_vehicle_id == v.id %}selected{% endif %}>
+                                        {{ v.brand }} {{ v.model }} ({{ v.year }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    {% if selected_vehicle_id %}
+                    <div class="mt-4">
+                        <h6 class="text-light border-bottom pb-2">Vehicle Status</h6>
+                        <form method="POST" action="{{ url_for('update_vehicle_status') }}">
+                            <input type="hidden" name="vehicle_id" value="{{ selected_vehicle_id }}">
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-light">Current Mileage</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-speedometer2"></i>
+                                    </span>
+                                    <input type="number" class="form-control dark-input" name="current_mileage" 
+                                           value="{{ vehicles|selectattr('id', 'equalto', selected_vehicle_id)|map(attribute='status.current_mileage')|first or 0 }}" 
+                                           min="0" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-light">Next Service Due</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-tools"></i>
+                                    </span>
+                                    <input type="date" class="form-control dark-input" name="next_service_due" 
+                                           value="{{ vehicles|selectattr('id', 'equalto', selected_vehicle_id)|map(attribute='status.next_service_due')|first|default('', true) }}">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-light">Tag Renewal Date</label>
+                                <div class="input-group">
+                                    <span class="input-group-text dark-input-icon">
+                                        <i class="bi bi-card-checklist"></i>
+                                    </span>
+                                    <input type="date" class="form-control dark-input" name="tag_renewal_date" 
+                                           value="{{ vehicles|selectattr('id', 'equalto', selected_vehicle_id)|map(attribute='status.tag_renewal_date')|first|default('', true) }}">
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100 glow-on-hover">
+                                <i class="bi bi-check-circle"></i> Update Status
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if selected_vehicle_id %}
+            <div class="card dark-card mt-3">
+                <div class="card-header dark-card-header">
+                    <h5 class="mb-0 text-light">Log Maintenance</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_maintenance') }}">
+                        <input type="hidden" name="vehicle_id" value="{{ selected_vehicle_id }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-light">Service Date *</label>
+                            <div class="input-group">
+                                <span class="input-group-text dark-input-icon">
+                                    <i class="bi bi-calendar-date"></i>
+                                </span>
+                                <input type="date" class="form-control dark-input" name="service_date" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-light">Issue Reported</label>
+                            <div class="input-group">
+                                <span class="input-group-text dark-input-icon">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </span>
+                                <input type="text" class="form-control dark-input" name="issue_reported" placeholder="Describe the issue">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-light">Resolution Details</label>
+                            <div class="input-group">
+                                <span class="input-group-text dark-input-icon align-items-start">
+                                    <i class="bi bi-wrench"></i>
+                                </span>
+                                <textarea class="form-control dark-input" name="resolution_details" rows="2" placeholder="Describe the resolution"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-light">Cost ($)</label>
+                            <div class="input-group">
+                                <span class="input-group-text dark-input-icon">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </span>
+                                <input type="number" class="form-control dark-input" name="cost" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success w-100 glow-on-hover">
+                            <i class="bi bi-plus-circle"></i> Log Maintenance
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card dark-card">
+                <div class="card-header dark-card-header">
+                    <h5 class="mb-0 text-light">Maintenance History</h5>
+                    <p class="text-muted mb-0">Recent maintenance records</p>
+                </div>
+                <div class="card-body">
+                    {% if maintenance_logs %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover maintenance-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Issue</th>
+                                    <th>Resolution</th>
+                                    <th>Cost</th>
+                                    <th>Vehicle</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in maintenance_logs %}
+                                <tr class="maintenance-row">
+                                    <td>
+                                        <span class="date-badge">
+                                            <i class="bi bi-calendar-event me-1"></i>
+                                            {{ log.service_date.strftime('%Y-%m-%d') }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="issue-info">
+                                            {% if log.issue_reported %}
+                                            <i class="bi bi-exclamation-circle me-1"></i>
+                                            {{ log.issue_reported }}
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="resolution-info">
+                                            {% if log.resolution_details %}
+                                            <i class="bi bi-check-circle me-1"></i>
+                                            {{ log.resolution_details|truncate(30) }}
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="cost-cell">
+                                        <i class="bi bi-currency-dollar"></i>
+                                        {{ "%.2f"|format(log.cost) }}
+                                    </td>
+                                    <td>
+                                        <div class="vehicle-info">
+                                            <i class="bi bi-car-front me-1"></i>
+                                            {{ log.vehicle.brand }} {{ log.vehicle.model }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 empty-state">
+                        <div class="empty-icon mb-3">
+                            <i class="bi bi-tools"></i>
+                        </div>
+                        <h6 class="text-light">No maintenance records found.</h6>
+                        {% if not selected_vehicle_id %}
+                        <p class="text-muted">Select a vehicle to view its maintenance history.</p>
+                        {% else %}
+                        <p class="text-muted">No maintenance records for this vehicle yet.</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dark-theme-wrapper {
+    background-color: #121212;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.dark-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.dark-card-header {
+    background: linear-gradient(135deg, #252525 0%, #1e1e1e 100%);
+    border-bottom: 1px solid #333;
+    padding: 1.5rem;
+}
+
+.dark-input, .dark-select {
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    color: #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.dark-input:focus, .dark-select:focus {
+    background-color: #333;
+    border-color: #0d6efd;
+    color: #e9ecef;
+    box-shadow: 0 0 0 0.3rem rgba(13, 110, 253, 0.15);
+}
+
+.dark-input-icon {
+    background-color: #252525;
+    border: 1px solid #444;
+    border-right: none;
+    color: #6c757d;
+}
+
+.maintenance-table {
+    background-color: transparent;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.maintenance-table thead th {
+    background-color: #252525;
+    border-bottom: 2px solid #333;
+    padding: 15px 12px;
+    font-weight: 600;
+    color: #b0b0b0;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.maintenance-table tbody tr {
+    background-color: #252525;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.maintenance-table tbody tr:hover {
+    background-color: #2d2d2d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.maintenance-table tbody td {
+    padding: 15px 12px;
+    vertical-align: middle;
+    border-top: 1px solid #333;
+    color: #e9ecef;
+}
+
+.date-badge {
+    background-color: #2d2d2d;
+    color: #e9ecef;
+    padding: 6px 10px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.issue-info, .resolution-info, .vehicle-info {
+    display: flex;
+    align-items: center;
+    color: #e9ecef;
+}
+
+.issue-info i {
+    color: #ffc107;
+}
+
+.resolution-info i {
+    color: #198754;
+}
+
+.vehicle-info i {
+    color: #6c757d;
+}
+
+.cost-cell {
+    font-weight: 600;
+    color: #4cd964 !important;
+    font-family: 'Courier New', monospace;
+}
+
+.glow-on-hover {
+    transition: all 0.3s ease;
+}
+
+.glow-on-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 20px rgba(13, 110, 253, 0.4);
+}
+
+.admin-stats .badge {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 20px;
+}
+
+.empty-state {
+    padding: 40px 20px;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    opacity: 0.7;
+}
+
+/* Animation for table rows */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.maintenance-row {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+/* Stagger animation for multiple rows */
+.maintenance-row:nth-child(1) { animation-delay: 0.1s; }
+.maintenance-row:nth-child(2) { animation-delay: 0.2s; }
+.maintenance-row:nth-child(3) { animation-delay: 0.3s; }
+.maintenance-row:nth-child(4) { animation-delay: 0.4s; }
+.maintenance-row:nth-child(5) { animation-delay: 0.5s; }
+
+/* Custom scrollbar for table */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dark-theme-wrapper {
+        padding: 10px;
+    }
+    
+    .maintenance-table {
+        font-size: 0.85rem;
+    }
+    
+    .maintenance-table thead th {
+        padding: 10px 8px;
+    }
+    
+    .maintenance-table tbody td {
+        padding: 10px 8px;
+    }
+    
+    .date-badge {
+        font-size: 0.75rem;
+        padding: 6px 8px;
+    }
+    
+    .admin-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .admin-stats .badge {
+        margin-bottom: 5px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Set today's date as default for service date
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const serviceDateInput = document.querySelector('input[name="service_date"]');
+    if (serviceDateInput && !serviceDateInput.value) {
+        serviceDateInput.value = today;
+    }
+    
+    // Add input validation
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const requiredInputs = form.querySelectorAll('[required]');
+            let valid = true;
+            
+            requiredInputs.forEach(input => {
+                if (!input.value.trim()) {
+                    valid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!valid) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

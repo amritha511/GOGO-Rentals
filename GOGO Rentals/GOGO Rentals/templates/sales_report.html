@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Sales Report - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Sales Report</h2>
+
+<div class="card mb-4">
+    <div class="card-body text-center">
+        <img src="data:image/png;base64,{{ image_base64 }}" alt="Sales Report Chart" class="img-fluid">
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Monthly Sales Data</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Revenue</th>
+                        <th>Bookings</th>
+                        <th>Average per Booking</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in sales_data %}
+                    <tr>
+                        <td>{{ data.month }}</td>
+                        <td>${{ "%.2f"|format(data.revenue) }}</td>
+                        <td>{{ data.bookings }}</td>
+                        <td>${{ "%.2f"|format(data.revenue / data.bookings) if data.bookings > 0 else 0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <th>Total</th>
+                        <th>${{ "%.2f"|format(sales_data|sum(attribute='revenue')) }}</th>
+                        <th>{{ sales_data|sum(attribute='bookings') }}</th>
+                        <th>${{ "%.2f"|format(sales_data|sum(attribute='revenue') / sales_data|sum(attribute='bookings')) if sales_data|sum(attribute='bookings') > 0 else 0 }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Book {{ vehicle.brand }} {{ vehicle.model }} - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<div class="row text-light">
+    <!-- Vehicle Info -->
+    <div class="col-md-6 mb-4">
+        {% if vehicle.image_path %}
+        <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image_path) }}" 
+             class="img-fluid rounded shadow-lg" 
+             alt="{{ vehicle.brand }} {{ vehicle.model }}">
+        {% else %}
+        <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="height: 300px;">
+            <span class="text-muted">No image available</span>
+        </div>
+        {% endif %}
+        
+        <div class="card bg-dark border-light shadow mt-3">
+            <div class="card-body">
+                <h5 class="card-title text-info">{{ vehicle.brand }} {{ vehicle.model }}</h5>
+                <p class="card-text">
+                    <strong>Year:</strong> {{ vehicle.year }}<br>
+                    <strong>Color:</strong> {{ vehicle.color or 'N/A' }}<br>
+                    <strong>Seats:</strong> {{ vehicle.seating_capacity }}<br>
+                    <strong>Fuel:</strong> {{ vehicle.fuel_type }}<br>
+                    <strong>Daily Rate:</strong> ${{ "%.2f"|format(vehicle.price_per_day) }}
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Booking Form -->
+    <div class="col-md-6">
+        <div class="card bg-dark border-light shadow">
+            <div class="card-header text-info">
+                <h4 class="mb-0">Book This Vehicle</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('book_vehicle', vehicle_id=vehicle.id) }}" class="needs-validation" novalidate>
+                    <input type="hidden" id="price_per_day" value="{{ vehicle.price_per_day }}">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="from_date" class="form-label">From Date *</label>
+                            <input type="date" class="form-control bg-dark text-light border-secondary" id="from_date" name="from_date" required>
+                            <div class="invalid-feedback">Please select a start date.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="to_date" class="form-label">To Date *</label>
+                            <input type="date" class="form-control bg-dark text-light border-secondary" id="to_date" name="to_date" required>
+                            <div class="invalid-feedback">Please select an end date.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button type="button" id="check-availability" class="btn btn-outline-info w-100" 
+                                data-vehicle-id="{{ vehicle.id }}">
+                            Check Availability
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-dark border-info">
+                        <h6 class="text-info">Estimated Total: <span id="total_price">$0.00</span></h6>
+                        <small class="text-muted">
+                            Price includes dynamic pricing based on demand and your loyalty status.
+                        </small>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal" class="text-info">terms and conditions</a> *
+                        </label>
+                        <div class="invalid-feedback">You must agree to the terms and conditions.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-info btn-lg">Confirm Booking</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card bg-dark border-light shadow mt-3">
+            <div class="card-body">
+                <h6 class="text-info">Need help?</h6>
+                <button class="btn btn-outline-light w-100" id="chatbot-btn">
+                    <i class="bi bi-chat-dots"></i> Ask Virtual Assistant
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-info">Terms and Conditions</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Rental Agreement</h6>
+                <ul>
+                    <li>You must be at least 21 years old with a valid driver's license</li>
+                    <li>A security deposit may be required</li>
+                    <li>Vehicle must be returned in the same condition</li>
+                    <li>Additional charges may apply for late returns or damages</li>
+                    <li>Fuel policy: return with same level as pickup</li>
+                    <li>Mileage: unlimited unless otherwise specified</li>
+                </ul>
+                
+                <h6>Cancellation Policy</h6>
+                <ul>
+                    <li>Free cancellation up to 24 hours before pickup</li>
+                    <li>50% refund for cancellations within 24 hours of pickup</li>
+                    <li>No refund for no-shows or cancellations after pickup time</li>
+                </ul>
+                
+                <h6>Insurance</h6>
+                <p>Basic insurance is included. Additional coverage options are available.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chatbot Modal -->
+<div class="modal fade" id="chatbot-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-info">Virtual Assistant - Booking Help</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="chat-display" class="chat-container mb-3 p-3 bg-secondary rounded" style="max-height:300px; overflow-y:auto;">
+                    <div class="chat-message chat-bot text-light">
+                        Hello! I can help you with the booking process for this {{ vehicle.brand }} {{ vehicle.model }}. 😊
+                    </div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="chat-input" class="form-control bg-dark text-light border-secondary" placeholder="Ask about booking...">
+                    <button id="chat-send" class="btn btn-info">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// === Price Calculation ===
+function calculatePrice() {
+    const pricePerDay = parseFloat(document.getElementById("price_per_day").value);
+    const fromDate = new Date(document.getElementById("from_date").value);
+    const toDate = new Date(document.getElementById("to_date").value);
+
+    if (!isNaN(fromDate) && !isNaN(toDate) && toDate >= fromDate) {
+        const diffTime = Math.abs(toDate - fromDate);
+        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // inclusive
+        const total = pricePerDay * days;
+        document.getElementById("total_price").innerText = `$${total.toFixed(2)}`;
+    } else {
+        document.getElementById("total_price").innerText = "$0.00";
+    }
+}
+document.getElementById("from_date").addEventListener("change", calculatePrice);
+document.getElementById("to_date").addEventListener("change", calculatePrice);
+
+// === Availability Check (placeholder AJAX) ===
+document.getElementById("check-availability").addEventListener("click", function() {
+    const vehicleId = this.getAttribute("data-vehicle-id");
+    alert("Checking availability for vehicle ID: " + vehicleId);
+    // TODO: Replace with fetch('/check_availability/'+vehicleId)...
+});
+
+// === Chatbot Modal Open ===
+document.getElementById("chatbot-btn").addEventListener("click", () => {
+    const modal = new bootstrap.Modal(document.getElementById("chatbot-modal"));
+    modal.show();
+});
+
+// Initial Price
+calculatePrice();
+</script>
+{% endblock %}

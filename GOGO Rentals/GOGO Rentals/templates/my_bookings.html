@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}My Bookings - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<div class="dark-theme-wrapper">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-light">My Bookings</h2>
+        <a href="{{ url_for('customer_vehicles') }}" class="btn btn-primary glow-on-hover">
+            <i class="bi bi-car-front"></i> Book Another Vehicle
+        </a>
+    </div>
+
+    {% if bookings %}
+    <div class="card dark-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vehicle</th>
+                            <th>From Date</th>
+                            <th>To Date</th>
+                            <th>Booking Date</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                        <tr class="booking-row">
+                            <td>{{ booking.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="vehicle-icon me-2">
+                                        <i class="bi bi-car-front-fill"></i>
+                                    </div>
+                                    <div>
+                                        {{ booking.vehicle.brand }} {{ booking.vehicle.model }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ booking.from_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ booking.to_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ booking.booking_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <span class="badge status-badge 
+                                    {% if booking.status == 'approved' %}bg-success
+                                    {% elif booking.status == 'pending' %}bg-warning text-dark
+                                    {% elif booking.status in ['rejected', 'cancelled'] %}bg-danger
+                                    {% elif booking.status == 'completed' %}bg-info
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ booking.status }}
+                                </span>
+                                {% if booking.actual_return_date %}
+                                <br><small class="text-muted">Returned: {{ booking.actual_return_date.strftime('%Y-%m-%d') }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge payment-badge 
+                                    {% if booking.payment_status == 'paid' %}bg-success
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ booking.payment_status }}
+                                </span>
+                            </td>
+                            <td class="price-cell">${{ "%.2f"|format(booking.total_price) }}</td>
+                            <td>
+                                {% if booking.status in ['pending', 'approved'] %}
+                                <div class="btn-group-vertical btn-group-sm">
+                                    {% if booking.payment_status != 'paid' and booking.status == 'approved' %}
+                                    <a href="{{ url_for('payment', booking_id=booking.id) }}" 
+                                       class="btn btn-outline-success mb-1 payment-btn">
+                                       <i class="bi bi-credit-card"></i> Pay Now
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if booking.status == 'approved' and not booking.actual_return_date %}
+                                    <a href="{{ url_for('return_vehicle', booking_id=booking.id) }}" 
+                                       class="btn btn-outline-primary mb-1 return-btn">
+                                       <i class="bi bi-arrow-return-left"></i> Return
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if booking.status in ['pending', 'approved'] %}
+                                    <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}" 
+                                       class="btn btn-outline-danger cancel-btn" 
+                                       onclick="return confirm('Are you sure you want to cancel this booking?')">
+                                       <i class="bi bi-x-circle"></i> Cancel
+                                    </a>
+                                    {% endif %}
+                                </div>
+                                {% elif booking.status == 'completed' %}
+                                <span class="text-muted">Completed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5 empty-state">
+        <div class="empty-icon mb-3">
+            <i class="bi bi-calendar-x"></i>
+        </div>
+        <h4 class="text-light">You don't have any bookings yet.</h4>
+        <p class="text-muted">Start by browsing our available vehicles.</p>
+        <a href="{{ url_for('customer_vehicles') }}" class="btn btn-primary mt-2">Browse Vehicles</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dark-theme-wrapper {
+    background-color: #121212;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.dark-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.table-dark {
+    background-color: #1e1e1e;
+    color: #e9ecef;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.table-dark thead th {
+    border-bottom: 1px solid #444;
+    padding: 15px;
+    font-weight: 600;
+    color: #b0b0b0;
+}
+
+.table-dark tbody tr {
+    background-color: #252525;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.table-dark tbody tr:hover {
+    background-color: #2d2d2d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.table-dark tbody td {
+    padding: 15px;
+    vertical-align: middle;
+    border-top: 1px solid #333;
+}
+
+.booking-row {
+    border-radius: 8px;
+}
+
+.vehicle-icon {
+    color: #6c757d;
+    font-size: 1.2rem;
+}
+
+.status-badge, .payment-badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+.price-cell {
+    font-weight: 600;
+    color: #4cd964 !important;
+}
+
+.glow-on-hover {
+    transition: all 0.3s ease;
+}
+
+.glow-on-hover:hover {
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
+}
+
+.btn-outline-success, .btn-outline-primary, .btn-outline-danger {
+    border-width: 1px;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-success:hover {
+    background-color: #198754;
+    box-shadow: 0 0 10px rgba(25, 135, 84, 0.4);
+}
+
+.btn-outline-primary:hover {
+    background-color: #0d6efd;
+    box-shadow: 0 0 10px rgba(13, 110, 253, 0.4);
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.4);
+}
+
+.empty-state {
+    padding: 60px 20px;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: #6c757d;
+    opacity: 0.7;
+}
+
+/* Custom scrollbar for table */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Animation for new rows */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.booking-row {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+/* Stagger animation for multiple rows */
+.booking-row:nth-child(1) { animation-delay: 0.1s; }
+.booking-row:nth-child(2) { animation-delay: 0.2s; }
+.booking-row:nth-child(3) { animation-delay: 0.3s; }
+.booking-row:nth-child(4) { animation-delay: 0.4s; }
+.booking-row:nth-child(5) { animation-delay: 0.5s; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dark-theme-wrapper {
+        padding: 10px;
+    }
+    
+    .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .btn-group-vertical {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .btn-group-vertical .btn {
+        margin-bottom: 0 !important;
+    }
+}
+</style>
+{% endblock %}

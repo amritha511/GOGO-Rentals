@@ -1,0 +1,671 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Bookings - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<div class="dark-theme-wrapper">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-light">Manage Bookings</h2>
+        <div class="admin-stats">
+            <span class="badge bg-info">{{ bookings|length }} total bookings</span>
+            <span class="badge bg-success ms-2">{{ returned_count }} returned vehicles</span>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card dark-card mb-4">
+        <div class="card-body">
+            <h5 class="text-light mb-3">Filter Bookings</h5>
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label text-light">Status</label>
+                    <select name="status" class="form-select dark-select">
+                        <option value="">All Statuses</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed/Returned</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">Payment Status</label>
+                    <select name="payment_status" class="form-select dark-select">
+                        <option value="">All Payments</option>
+                        <option value="paid" {% if payment_filter == 'paid' %}selected{% endif %}>Paid</option>
+                        <option value="unpaid" {% if payment_filter == 'unpaid' %}selected{% endif %}>Unpaid</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="returned" value="true" 
+                               id="returnedFilter" {% if returned_filter %}checked{% endif %}>
+                        <label class="form-check-label text-light" for="returnedFilter">
+                            Show Only Returned Vehicles
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{{ url_for('admin_bookings') }}" class="btn btn-outline-secondary ms-2">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if bookings %}
+    <div class="card dark-card">
+        <div class="card-header dark-card-header">
+            <h5 class="mb-0 text-light">Booking Management</h5>
+            <p class="text-muted mb-0">Review and manage all rental bookings</p>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Vehicle</th>
+                            <th>Rental Period</th>
+                            <th>Booking Date</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Total</th>
+                            <th>Return Info</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                        <tr class="booking-row">
+                            <td class="booking-id">#{{ booking.id }}</td>
+                            <td>
+                                <div class="customer-info">
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    {{ booking.user.username }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="vehicle-info">
+                                    <i class="bi bi-car-front me-2"></i>
+                                    {{ booking.vehicle.brand }} {{ booking.vehicle.model }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="date-range">
+                                    <span class="date-badge">
+                                        <i class="bi bi-calendar-event me-1"></i>
+                                        {{ booking.from_date.strftime('%Y-%m-%d') }}
+                                    </span>
+                                    <span class="text-muted mx-1">to</span>
+                                    <span class="date-badge">
+                                        <i class="bi bi-calendar-event me-1"></i>
+                                        {{ booking.to_date.strftime('%Y-%m-%d') }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="date-badge">
+                                    <i class="bi bi-calendar-plus me-1"></i>
+                                    {{ booking.booking_date.strftime('%Y-%m-%d') }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge 
+                                    {% if booking.status == 'approved' %}approved
+                                    {% elif booking.status == 'pending' %}pending
+                                    {% elif booking.status in ['rejected', 'cancelled'] %}rejected
+                                    {% else %}secondary{% endif %}">
+                                    <i class="bi 
+                                        {% if booking.status == 'approved' %}bi-check-circle
+                                        {% elif booking.status == 'pending' %}bi-clock
+                                        {% elif booking.status in ['rejected', 'cancelled'] %}bi-x-circle
+                                        {% else %}bi-question-circle{% endif %} me-1">
+                                    </i>
+                                    {{ booking.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="payment-badge 
+                                    {% if booking.payment_status == 'paid' %}paid
+                                    {% else %}unpaid{% endif %}">
+                                    <i class="bi 
+                                        {% if booking.payment_status == 'paid' %}bi-credit-card
+                                        {% else %}bi-credit-card-2-front{% endif %} me-1">
+                                    </i>
+                                    {{ booking.payment_status }}
+                                </span>
+                            </td>
+                            <td class="price-cell">
+                                <i class="bi bi-currency-dollar"></i>
+                                {{ "%.2f"|format(booking.total_price) }}
+                            </td>
+                            <td>
+                                {% if booking.actual_return_date %}
+                                <div class="return-info">
+                                    <div class="return-date">
+                                        <small class="text-muted">Returned:</small>
+                                        <span class="date-badge returned">
+                                            <i class="bi bi-calendar-check me-1"></i>
+                                            {{ booking.actual_return_date.strftime('%Y-%m-%d') }}
+                                        </span>
+                                    </div>
+                                    {% if booking.return_mileage %}
+                                    <div class="mileage-info">
+                                        <small class="text-muted">Mileage:</small>
+                                        <span class="badge bg-secondary">{{ booking.return_mileage }} km</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if booking.condition and booking.condition != 'good' %}
+                                    <div class="condition-info">
+                                        <small class="text-muted">Condition:</small>
+                                        <span class="badge 
+                                            {% if booking.condition == 'damaged' %}bg-danger
+                                            {% elif booking.condition == 'fair' %}bg-warning text-dark
+                                            {% else %}bg-info{% endif %}">
+                                            {{ booking.condition }}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <span class="text-muted">Not returned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm action-buttons">
+                                    {% if booking.status == 'pending' %}
+                                    <a href="{{ url_for('update_booking_status', booking_id=booking.id, status='approved') }}" 
+                                       class="btn btn-outline-success approve-btn"
+                                       data-bs-toggle="tooltip" title="Approve Booking">
+                                       <i class="bi bi-check-lg"></i>
+                                    </a>
+                                    <a href="{{ url_for('update_booking_status', booking_id=booking.id, status='rejected') }}" 
+                                       class="btn btn-outline-danger reject-btn"
+                                       data-bs-toggle="tooltip" title="Reject Booking">
+                                       <i class="bi bi-x-lg"></i>
+                                    </a>
+                                    {% elif booking.status == 'approved' and not booking.actual_return_date %}
+                                    <a href="{{ url_for('update_booking_status', booking_id=booking.id, status='completed') }}" 
+                                       class="btn btn-outline-primary complete-btn"
+                                       data-bs-toggle="tooltip" title="Mark as Completed">
+                                       <i class="bi bi-check-all"></i>
+                                    </a>
+                                    {% elif booking.actual_return_date %}
+                                    <span class="btn btn-outline-secondary" 
+                                          data-bs-toggle="tooltip" title="Vehicle Returned">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </span>
+                                    {% endif %}
+                                    
+                                    <!-- View Details Button -->
+                                    <button type="button" class="btn btn-outline-info view-details-btn"
+                                            data-bs-toggle="modal" data-bs-target="#bookingDetailsModal"
+                                            data-booking-id="{{ booking.id }}"
+                                            data-bs-toggle="tooltip" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5 empty-state">
+        <div class="empty-icon mb-3">
+            <i class="bi bi-calendar-x"></i>
+        </div>
+        <h4 class="text-light">No bookings found.</h4>
+        <p class="text-muted">There are no bookings matching your filters.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Booking Details Modal -->
+<div class="modal fade" id="bookingDetailsModal" tabindex="-1" aria-labelledby="bookingDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content dark-modal">
+            <div class="modal-header">
+                <h5 class="modal-title text-light" id="bookingDetailsModalLabel">Booking Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="bookingDetailsContent">
+                <!-- Details will be loaded via JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dark-theme-wrapper {
+    background-color: #121212;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.dark-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.dark-card-header {
+    background: linear-gradient(135deg, #252525 0%, #1e1e1e 100%);
+    border-bottom: 1px solid #333;
+    padding: 1.5rem;
+}
+
+.dark-select {
+    background-color: #252525;
+    border: 1px solid #444;
+    color: #e9ecef;
+}
+
+.dark-select:focus {
+    background-color: #252525;
+    border-color: #0d6efd;
+    color: #e9ecef;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.dark-modal {
+    background-color: #1e1e1e;
+    color: #e9ecef;
+}
+
+.dark-modal .modal-header {
+    border-bottom: 1px solid #333;
+}
+
+.dark-modal .modal-footer {
+    border-top: 1px solid #333;
+}
+
+.admin-table {
+    background-color: transparent;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.admin-table thead th {
+    background-color: #252525;
+    border-bottom: 2px solid #333;
+    padding: 15px 12px;
+    font-weight: 600;
+    color: #b0b0b0;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.admin-table tbody tr {
+    background-color: #252525;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.admin-table tbody tr:hover {
+    background-color: #2d2d2d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.admin-table tbody td {
+    padding: 15px 12px;
+    vertical-align: middle;
+    border-top: 1px solid #333;
+    color: #e9ecef;
+}
+
+.booking-id {
+    font-weight: 600;
+    color: #6c757d !important;
+    font-family: 'Courier New', monospace;
+}
+
+.customer-info, .vehicle-info {
+    display: flex;
+    align-items: center;
+    color: #e9ecef;
+}
+
+.customer-info i, .vehicle-info i {
+    color: #6c757d;
+}
+
+.date-badge {
+    background-color: #2d2d2d;
+    color: #e9ecef;
+    padding: 6px 10px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.date-badge.returned {
+    background-color: rgba(25, 135, 84, 0.2);
+    color: #198754;
+    border: 1px solid #198754;
+}
+
+.date-range {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.return-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.status-badge, .payment-badge {
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+}
+
+.status-badge.approved {
+    background-color: rgba(25, 135, 84, 0.2);
+    color: #198754;
+    border: 1px solid #198754;
+}
+
+.status-badge.pending {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+    border: 1px solid #ffc107;
+}
+
+.status-badge.rejected {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.status-badge.secondary {
+    background-color: rgba(108, 117, 125, 0.2);
+    color: #6c757d;
+    border: 1px solid #6c757d;
+}
+
+.payment-badge.paid {
+    background-color: rgba(25, 135, 84, 0.2);
+    color: #198754;
+    border: 1px solid #198754;
+}
+
+.payment-badge.unpaid {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.price-cell {
+    font-weight: 600;
+    color: #4cd964 !important;
+    font-family: 'Courier New', monospace;
+}
+
+.action-buttons {
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.approve-btn, .reject-btn, .complete-btn, .view-details-btn {
+    border: 1px solid;
+    padding: 6px 10px;
+    transition: all 0.3s ease;
+}
+
+.approve-btn {
+    border-color: #198754;
+    color: #198754;
+}
+
+.approve-btn:hover {
+    background-color: #198754;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.reject-btn {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.reject-btn:hover {
+    background-color: #dc3545;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.complete-btn {
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.complete-btn:hover {
+    background-color: #0d6efd;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.view-details-btn {
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.view-details-btn:hover {
+    background-color: #6c757d;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.admin-stats .badge {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 20px;
+}
+
+.empty-state {
+    padding: 60px 20px;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: #6c757d;
+    opacity: 0.7;
+}
+
+/* Animation for table rows */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.booking-row {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+/* Stagger animation for multiple rows */
+.booking-row:nth-child(1) { animation-delay: 0.1s; }
+.booking-row:nth-child(2) { animation-delay: 0.2s; }
+.booking-row:nth-child(3) { animation-delay: 0.3s; }
+.booking-row:nth-child(4) { animation-delay: 0.4s; }
+.booking-row:nth-child(5) { animation-delay: 0.5s; }
+
+/* Custom scrollbar for table */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dark-theme-wrapper {
+        padding: 10px;
+    }
+    
+    .admin-table {
+        font-size: 0.85rem;
+    }
+    
+    .admin-table thead th {
+        padding: 10px 8px;
+    }
+    
+    .admin-table tbody td {
+        padding: 10px 8px;
+    }
+    
+    .status-badge, .payment-badge, .date-badge {
+        font-size: 0.75rem;
+        padding: 6px 8px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .approve-btn, .reject-btn, .complete-btn {
+        margin-bottom: 2px;
+    }
+    
+    .date-range {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+});
+
+// Add confirmation for actions
+document.querySelectorAll('.approve-btn, .reject-btn, .complete-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        const action = this.classList.contains('approve-btn') ? 'approve' : 
+                      this.classList.contains('reject-btn') ? 'reject' : 'complete';
+        
+        if (!confirm(`Are you sure you want to ${action} this booking?`)) {
+            e.preventDefault();
+        }
+    });
+});
+
+// Handle booking details modal
+const bookingDetailsModal = document.getElementById('bookingDetailsModal');
+bookingDetailsModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const bookingId = button.getAttribute('data-booking-id');
+    const modalTitle = bookingDetailsModal.querySelector('.modal-title');
+    const modalBody = bookingDetailsModal.querySelector('.modal-body');
+    
+    modalTitle.textContent = `Booking #${bookingId} Details`;
+    modalBody.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading booking details...</p>
+        </div>
+    `;
+    
+    // In a real application, you would fetch the booking details from your server
+    // For this example, we'll simulate a delay and show sample data
+    setTimeout(() => {
+        modalBody.innerHTML = `
+            <div class="booking-details">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Customer Information</h6>
+                        <p class="mb-1"><strong>Name:</strong> Customer #${bookingId}</p>
+                        <p class="mb-1"><strong>Email:</strong> customer${bookingId}@example.com</p>
+                        <p class="mb-1"><strong>Phone:</strong> (555) 123-4567</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Vehicle Information</h6>
+                        <p class="mb-1"><strong>Vehicle:</strong> Toyota Camry</p>
+                        <p class="mb-1"><strong>Year:</strong> 2022</p>
+                        <p class="mb-1"><strong>Color:</strong> Blue</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Rental Period</h6>
+                        <p class="mb-1"><strong>From:</strong> 2023-06-15</p>
+                        <p class="mb-1"><strong>To:</strong> 2023-06-20</p>
+                        <p class="mb-1"><strong>Duration:</strong> 5 days</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Payment Details</h6>
+                        <p class="mb-1"><strong>Total:</strong> $250.00</p>
+                        <p class="mb-1"><strong>Payment Status:</strong> Paid</p>
+                        <p class="mb-1"><strong>Payment Method:</strong> Credit Card</p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h6>Return Information</h6>
+                        <p class="mb-1"><strong>Return Date:</strong> 2023-06-19</p>
+                        <p class="mb-1"><strong>Return Mileage:</strong> 1250 km</p>
+                        <p class="mb-1"><strong>Condition:</strong> Good</p>
+                        <p class="mb-1"><strong>Notes:</strong> Vehicle returned with full tank</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1000);
+});
+</script>
+{% endblock %}

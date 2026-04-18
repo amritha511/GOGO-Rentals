@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}Available Vehicles - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<div class="dark-theme-wrapper">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-light">Available Vehicles</h2>
+        <button class="btn btn-outline-primary glow-on-hover" id="chatbot-btn">
+            <i class="bi bi-chat-dots"></i> Virtual Assistant
+        </button>
+    </div>
+
+    <!-- Search and Filter Form -->
+    <div class="card dark-card mb-4">
+        <div class="card-header dark-card-header">
+            <h5 class="mb-0 text-light">Search & Filter</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('customer_vehicles') }}" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control dark-input" name="search" placeholder="Search by brand or model..." value="{{ search }}">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select dark-select" name="brand">
+                        <option value="">All Brands</option>
+                        {% for brand in brands %}
+                        <option value="{{ brand }}" {% if brand_filter == brand %}selected{% endif %}>{{ brand }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select dark-select" name="fuel">
+                        <option value="">All Fuel Types</option>
+                        <option value="Petrol" {% if fuel_filter == 'Petrol' %}selected{% endif %}>Petrol</option>
+                        <option value="Diesel" {% if fuel_filter == 'Diesel' %}selected{% endif %}>Diesel</option>
+                        <option value="Electric" {% if fuel_filter == 'Electric' %}selected{% endif %}>Electric</option>
+                        <option value="Hybrid" {% if fuel_filter == 'Hybrid' %}selected{% endif %}>Hybrid</option>
+                        <option value="CNG" {% if fuel_filter == 'CNG' %}selected{% endif %}>CNG</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 glow-on-hover">Apply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Vehicles Grid -->
+    {% if vehicles %}
+    <div class="row">
+        {% for vehicle in vehicles %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card vehicle-card dark-card h-100">
+                {% if vehicle.image_path %}
+                <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image_path) }}" 
+                     class="card-img-top vehicle-img" 
+                     alt="{{ vehicle.brand }} {{ vehicle.model }}">
+                {% else %}
+                <div class="card-img-top vehicle-img-placeholder d-flex align-items-center justify-content-center">
+                    <span class="text-muted">No image available</span>
+                </div>
+                {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title text-light">{{ vehicle.brand }} {{ vehicle.model }}</h5>
+                    <p class="card-text vehicle-details">
+                        <span class="detail-item"><i class="bi bi-calendar"></i> {{ vehicle.year }}</span>
+                        <span class="detail-item"><i class="bi bi-palette"></i> {{ vehicle.color or 'N/A' }}</span>
+                        <span class="detail-item"><i class="bi bi-people"></i> {{ vehicle.seating_capacity }} seats</span>
+                        <span class="detail-item">
+                            <i class="bi bi-fuel-pump"></i> 
+                            {% if vehicle.fuel_type == 'Electric' %}⚡
+                            {% elif vehicle.fuel_type == 'Hybrid' %}🔋
+                            {% else %}{{ vehicle.fuel_type }}{% endif %}
+                        </span>
+                        <span class="detail-item price-tag">
+                            <i class="bi bi-tag"></i> ${{ "%.2f"|format(vehicle.price_per_day) }}/day
+                        </span>
+                    </p>
+                    {% if vehicle.description %}
+                    <p class="card-text text-small text-muted description-text">{{ vehicle.description|truncate(100) }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="card-footer dark-card-footer">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('vehicle_details', vehicle_id=vehicle.id) }}" 
+                           class="btn btn-outline-primary details-btn">
+                           <i class="bi bi-info-circle"></i> View Details
+                        </a>
+                        <a href="{{ url_for('book_vehicle', vehicle_id=vehicle.id) }}" 
+                           class="btn btn-primary book-btn glow-on-hover">
+                           <i class="bi bi-calendar-check"></i> Book Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 empty-state">
+        <div class="empty-icon mb-3">
+            <i class="bi bi-search"></i>
+        </div>
+        <h4 class="text-light">No vehicles available at the moment.</h4>
+        <p class="text-muted">Please check back later or try different search criteria.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Chatbot Modal -->
+<div class="modal fade" id="chatbot-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content dark-modal">
+            <div class="modal-header dark-modal-header">
+                <h5 class="modal-title text-light">Virtual Assistant</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body dark-modal-body">
+                <div id="chat-display" class="chat-container mb-3 p-3 rounded">
+                    <div class="chat-message chat-bot">
+                        Hello! I'm your GoGo RENTALS assistant. 😊 How can I help you find the perfect vehicle?
+                    </div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="chat-input" class="form-control dark-input" placeholder="Type your question...">
+                    <button id="chat-send" class="btn btn-primary">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dark-theme-wrapper {
+    background-color: #121212;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.dark-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+}
+
+.dark-card-header {
+    background-color: #252525;
+    border-bottom: 1px solid #333;
+}
+
+.dark-card-footer {
+    background-color: #252525;
+    border-top: 1px solid #333;
+}
+
+.dark-input, .dark-select {
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    color: #e9ecef;
+}
+
+.dark-input:focus, .dark-select:focus {
+    background-color: #333;
+    border-color: #0d6efd;
+    color: #e9ecef;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.vehicle-img {
+    height: 200px;
+    object-fit: cover;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.vehicle-img-placeholder {
+    height: 200px;
+    background-color: #2d2d2d;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.vehicle-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #b0b0b0;
+    font-size: 0.9rem;
+}
+
+.price-tag {
+    color: #4cd964 !important;
+    font-weight: 600;
+}
+
+.description-text {
+    border-left: 3px solid #444;
+    padding-left: 10px;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.details-btn, .book-btn {
+    transition: all 0.3s ease;
+}
+
+.details-btn:hover {
+    background-color: transparent;
+    border-color: #0d6efd;
+    color: #0d6efd;
+    box-shadow: 0 0 10px rgba(13, 110, 253, 0.4);
+}
+
+.book-btn:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    box-shadow: 0 0 15px rgba(13, 110, 253, 0.5);
+}
+
+.glow-on-hover {
+    transition: all 0.3s ease;
+}
+
+.glow-on-hover:hover {
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
+}
+
+.empty-state {
+    padding: 60px 20px;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: #6c757d;
+    opacity: 0.7;
+}
+
+/* Chatbot Modal Dark Theme */
+.dark-modal {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+}
+
+.dark-modal-header {
+    background-color: #252525;
+    border-bottom: 1px solid #333;
+}
+
+.dark-modal-body {
+    background-color: #1e1e1e;
+}
+
+.chat-container {
+    background-color: #252525 !important;
+    color: #e9ecef;
+    height: 200px;
+    overflow-y: auto;
+}
+
+.chat-message {
+    padding: 8px 12px;
+    border-radius: 18px;
+    margin-bottom: 8px;
+    max-width: 80%;
+}
+
+.chat-bot {
+    background-color: #2d2d2d;
+    align-self: flex-start;
+}
+
+/* Custom scrollbar */
+.chat-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 10px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 10px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Animation for vehicle cards */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.vehicle-card {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+/* Stagger animation for multiple cards */
+.col-md-6.col-lg-4.mb-4:nth-child(1) .vehicle-card { animation-delay: 0.1s; }
+.col-md-6.col-lg-4.mb-4:nth-child(2) .vehicle-card { animation-delay: 0.2s; }
+.col-md-6.col-lg-4.mb-4:nth-child(3) .vehicle-card { animation-delay: 0.3s; }
+.col-md-6.col-lg-4.mb-4:nth-child(4) .vehicle-card { animation-delay: 0.4s; }
+.col-md-6.col-lg-4.mb-4:nth-child(5) .vehicle-card { animation-delay: 0.5s; }
+.col-md-6.col-lg-4.mb-4:nth-child(6) .vehicle-card { animation-delay: 0.6s; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dark-theme-wrapper {
+        padding: 10px;
+    }
+    
+    .vehicle-details {
+        font-size: 0.85rem;
+    }
+    
+    .detail-item {
+        flex-wrap: wrap;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Chatbot functionality
+document.getElementById('chatbot-btn').addEventListener('click', function() {
+    const chatbotModal = new bootstrap.Modal(document.getElementById('chatbot-modal'));
+    chatbotModal.show();
+});
+
+document.getElementById('chat-send').addEventListener('click', function() {
+    const chatInput = document.getElementById('chat-input');
+    const message = chatInput.value.trim();
+    
+    if (message) {
+        // Add user message
+        const chatDisplay = document.getElementById('chat-display');
+        chatDisplay.innerHTML += `<div class="chat-message chat-user text-end mb-2" style="background-color: #0d6efd; color: white; margin-left: auto;">${message}</div>`;
+        
+        // Clear input
+        chatInput.value = '';
+        
+        // Simulate bot response
+        setTimeout(() => {
+            let response = "I can help you find the perfect vehicle! Try using the filters above to narrow down your search.";
+            
+            if (message.toLowerCase().includes('price') || message.toLowerCase().includes('cost')) {
+                response = "Prices vary by vehicle type and features. You can see the daily rate for each vehicle listed on the cards. Our prices are competitive and include basic insurance.";
+            } else if (message.toLowerCase().includes('available') || message.toLowerCase().includes('availability')) {
+                response = "All vehicles shown are currently available for booking. Use the filters to find vehicles that match your preferences for brand, fuel type, etc.";
+            } else if (message.toLowerCase().includes('book') || message.toLowerCase().includes('reserve')) {
+                response = "To book a vehicle, simply click the 'Book Now' button on the vehicle card. You'll need to select your rental dates and provide some basic information.";
+            } else if (message.toLowerCase().includes('fuel') || message.toLowerCase().includes('electric') || message.toLowerCase().includes('hybrid')) {
+                response = "We offer various fuel types including Petrol, Diesel, Electric, Hybrid, and CNG. Use the fuel filter to find vehicles with your preferred fuel type.";
+            }
+            
+            chatDisplay.innerHTML += `<div class="chat-message chat-bot mb-2">${response}</div>`;
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }, 500);
+    }
+});
+
+// Allow pressing Enter to send chat message
+document.getElementById('chat-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('chat-send').click();
+    }
+});
+</script>
+{% endblock %}

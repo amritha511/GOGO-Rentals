@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vehicle.brand }} {{ vehicle.model }} - GoGo RENTALS{% endblock %}
+
+{% block content %}
+<div class="dark-theme-wrapper">
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            {% if vehicle.image_path %}
+            <div class="vehicle-image-container">
+                <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image_path) }}" 
+                     class="img-fluid rounded vehicle-image" 
+                     alt="{{ vehicle.brand }} {{ vehicle.model }}">
+                <div class="availability-badge">
+                    <span class="badge {% if vehicle.available %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if vehicle.available %}Available{% else %}Not Available{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% else %}
+            <div class="no-image-placeholder rounded d-flex align-items-center justify-content-center">
+                <span class="text-muted">No image available</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+            <h2 class="text-light vehicle-title">{{ vehicle.brand }} {{ vehicle.model }}</h2>
+            
+            <div class="vehicle-highlights mb-4">
+                <div class="highlight-item">
+                    <i class="bi bi-calendar"></i>
+                    <span>{{ vehicle.year }}</span>
+                </div>
+                <div class="highlight-item">
+                    <i class="bi bi-palette"></i>
+                    <span>{{ vehicle.color or 'N/A' }}</span>
+                </div>
+                <div class="highlight-item">
+                    <i class="bi bi-people"></i>
+                    <span>{{ vehicle.seating_capacity }} people</span>
+                </div>
+                <div class="highlight-item">
+                    <i class="bi bi-fuel-pump"></i>
+                    <span>{{ vehicle.fuel_type }}</span>
+                </div>
+                <div class="highlight-item price">
+                    <i class="bi bi-tag"></i>
+                    <span>${{ "%.2f"|format(vehicle.price_per_day) }}/day</span>
+                </div>
+            </div>
+            
+            {% if vehicle.description %}
+            <div class="description-card dark-card mb-4">
+                <h6 class="text-light">Description</h6>
+                <p class="text-muted">{{ vehicle.description }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="d-grid gap-2">
+                {% if vehicle.available %}
+                <a href="{{ url_for('book_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-primary btn-lg book-btn glow-on-hover">
+                    <i class="bi bi-calendar-check"></i> Book This Vehicle
+                </a>
+                {% else %}
+                <button class="btn btn-secondary btn-lg" disabled>
+                    <i class="bi bi-x-circle"></i> Currently Not Available
+                </button>
+                {% endif %}
+                
+                {% if session.role != 'admin' %}
+                <button class="btn btn-outline-secondary chatbot-trigger" id="chatbot-btn">
+                    <i class="bi bi-chat-dots"></i> Ask Virtual Assistant
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Specifications Section -->
+    <div class="card dark-card mt-4">
+        <div class="card-header dark-card-header">
+            <h5 class="mb-0 text-light">Specifications</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-dark table-sm specs-table">
+                        <tr>
+                            <th><i class="bi bi-building"></i> Brand</th>
+                            <td>{{ vehicle.brand }}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-gear"></i> Model</th>
+                            <td>{{ vehicle.model }}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-calendar"></i> Year</th>
+                            <td>{{ vehicle.year }}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-palette"></i> Color</th>
+                            <td>{{ vehicle.color or 'N/A' }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-dark table-sm specs-table">
+                        <tr>
+                            <th><i class="bi bi-people"></i> Seating Capacity</th>
+                            <td>{{ vehicle.seating_capacity }} people</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-fuel-pump"></i> Fuel Type</th>
+                            <td>{{ vehicle.fuel_type }}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-tag"></i> Daily Rate</th>
+                            <td class="price">${{ "%.2f"|format(vehicle.price_per_day) }}</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-circle-fill"></i> Availability</th>
+                            <td>
+                                <span class="badge {% if vehicle.available %}bg-success{% else %}bg-danger{% endif %}">
+                                    {% if vehicle.available %}Available{% else %}Not Available{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chatbot Modal -->
+<div class="modal fade" id="chatbot-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content dark-modal">
+            <div class="modal-header dark-modal-header">
+                <h5 class="modal-title text-light">Virtual Assistant - {{ vehicle.brand }} {{ vehicle.model }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body dark-modal-body">
+                <div id="chat-display" class="chat-container mb-3 p-3 rounded">
+                    <div class="chat-message chat-bot">
+                        Hello! I can help you with information about this {{ vehicle.brand }} {{ vehicle.model }}. 😊
+                    </div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="chat-input" class="form-control dark-input" placeholder="Ask about this vehicle...">
+                    <button id="chat-send" class="btn btn-primary">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dark-theme-wrapper {
+    background-color: #121212;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.dark-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dark-card-header {
+    background-color: #252525;
+    border-bottom: 1px solid #333;
+}
+
+.vehicle-image-container {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.vehicle-image {
+    transition: transform 0.3s ease;
+}
+
+.vehicle-image:hover {
+    transform: scale(1.02);
+}
+
+.availability-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+.no-image-placeholder {
+    height: 300px;
+    background-color: #2d2d2d;
+    border-radius: 10px;
+}
+
+.vehicle-title {
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.5rem;
+}
+
+.vehicle-highlights {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 2rem;
+}
+
+.highlight-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background-color: #252525;
+    border-radius: 8px;
+    border-left: 3px solid #444;
+    transition: all 0.3s ease;
+}
+
+.highlight-item:hover {
+    background-color: #2d2d2d;
+    transform: translateY(-2px);
+}
+
+.highlight-item i {
+    font-size: 1.2rem;
+    color: #6c757d;
+}
+
+.highlight-item span {
+    color: #e9ecef;
+    font-weight: 500;
+}
+
+.highlight-item.price {
+    border-left-color: #4cd964;
+}
+
+.highlight-item.price i,
+.highlight-item.price span {
+    color: #4cd964 !important;
+}
+
+.description-card {
+    padding: 1.5rem;
+    border-left: 4px solid #0d6efd;
+}
+
+.book-btn {
+    transition: all 0.3s ease;
+}
+
+.book-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
+}
+
+.chatbot-trigger {
+    border: 1px solid #555;
+    transition: all 0.3s ease;
+}
+
+.chatbot-trigger:hover {
+    background-color: #2d2d2d;
+    border-color: #6c757d;
+    transform: translateY(-2px);
+}
+
+.glow-on-hover {
+    transition: all 0.3s ease;
+}
+
+.glow-on-hover:hover {
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
+}
+
+.specs-table {
+    background-color: transparent;
+}
+
+.specs-table th {
+    color: #b0b0b0;
+    font-weight: 500;
+    border-color: #333;
+}
+
+.specs-table td {
+    color: #e9ecef;
+    border-color: #333;
+}
+
+.specs-table tr:hover {
+    background-color: #252525;
+}
+
+.specs-table th i {
+    margin-right: 8px;
+    color: #6c757d;
+}
+
+/* Chatbot Modal Dark Theme */
+.dark-modal {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+}
+
+.dark-modal-header {
+    background-color: #252525;
+    border-bottom: 1px solid #333;
+}
+
+.dark-modal-body {
+    background-color: #1e1e1e;
+}
+
+.chat-container {
+    background-color: #252525 !important;
+    color: #e9ecef;
+    height: 200px;
+    overflow-y: auto;
+    border-radius: 8px !important;
+}
+
+.chat-message {
+    padding: 8px 12px;
+    border-radius: 18px;
+    margin-bottom: 8px;
+    max-width: 80%;
+}
+
+.chat-bot {
+    background-color: #2d2d2d;
+    align-self: flex-start;
+}
+
+.dark-input {
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    color: #e9ecef;
+}
+
+.dark-input:focus {
+    background-color: #333;
+    border-color: #0d6efd;
+    color: #e9ecef;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Custom scrollbar */
+.chat-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 10px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 10px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.vehicle-image-container, .vehicle-highlights, .description-card {
+    animation: fadeIn 0.6s ease forwards;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dark-theme-wrapper {
+        padding: 10px;
+    }
+    
+    .vehicle-highlights {
+        grid-template-columns: 1fr;
+    }
+    
+    .specs-table {
+        font-size: 0.9rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Chatbot functionality
+document.getElementById('chatbot-btn').addEventListener('click', function() {
+    const chatbotModal = new bootstrap.Modal(document.getElementById('chatbot-modal'));
+    chatbotModal.show();
+});
+
+document.getElementById('chat-send').addEventListener('click', function() {
+    const chatInput = document.getElementById('chat-input');
+    const message = chatInput.value.trim();
+    
+    if (message) {
+        // Add user message
+        const chatDisplay = document.getElementById('chat-display');
+        chatDisplay.innerHTML += `<div class="chat-message chat-user text-end mb-2" style="background-color: #0d6efd; color: white; margin-left: auto;">${message}</div>`;
+        
+        // Clear input
+        chatInput.value = '';
+        
+        // Simulate bot response
+        setTimeout(() => {
+            let response = "I can help answer questions about this vehicle's features, availability, or booking process.";
+            
+            if (message.toLowerCase().includes('feature') || message.toLowerCase().includes('spec')) {
+                response = `The ${vehicle.brand} ${vehicle.model} (${vehicle.year}) features ${vehicle.seating_capacity} seats, ${vehicle.fuel_type.toLowerCase()} engine, and comes in ${vehicle.color || 'various colors'}. It's perfect for ${vehicle.seating_capacity > 4 ? 'family trips' : 'city driving'}!`;
+            } else if (message.toLowerCase().includes('available') || message.toLowerCase().includes('when')) {
+                response = `This vehicle is currently ${vehicle.available ? 'available for booking' : 'not available'}. ${vehicle.available ? 'You can book it now for your preferred dates.' : 'Please check back later or browse other available vehicles.'}`;
+            } else if (message.toLowerCase().includes('price') || message.toLowerCase().includes('cost')) {
+                response = `The daily rate for this ${vehicle.brand} ${vehicle.model} is $${vehicle.price_per_day.toFixed(2)}. The total cost will depend on the number of rental days. Additional fees may apply for insurance or extra services.`;
+            } else if (message.toLowerCase().includes('book') || message.toLowerCase().includes('reserve')) {
+                response = `To book this vehicle, click the "Book This Vehicle" button. You'll need to select your rental dates and provide some basic information. ${!vehicle.available ? 'However, this vehicle is currently not available for booking.' : ''}`;
+            } else if (message.toLowerCase().includes('fuel') || message.toLowerCase().includes('mileage')) {
+                response = `This vehicle uses ${vehicle.fuel_type.toLowerCase()} fuel. ${vehicle.fuel_type === 'Electric' ? 'It requires charging instead of refueling.' : vehicle.fuel_type === 'Hybrid' ? 'It combines electric and gasoline power for better efficiency.' : 'Specific mileage details are available at the rental counter.'}`;
+            }
+            
+            chatDisplay.innerHTML += `<div class="chat-message chat-bot mb-2">${response}</div>`;
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }, 500);
+    }
+});
+
+// Allow pressing Enter to send chat message
+document.getElementById('chat-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('chat-send').click();
+    }
+});
+</script>
+{% endblock %}
